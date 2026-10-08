@@ -1,0 +1,29 @@
+# Base44 sandbox dev environment: runs the Excalidraw app from the cloned
+# source with the Vite dev server (live reload). The repo's own
+# docker-compose.yml builds a production nginx image and is NOT used here.
+services:
+  web:
+    image: node:24
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      - BASE44_PREVIEW_MODE
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      - BROWSER=none # vite.config sets `open: true`; nothing to open in a container
+    ports:
+      - "3000:3000"
+    command:
+      - sh
+      - -ec
+      - |
+        yarn install --frozen-lockfile --network-timeout 600000 --non-interactive
+        cd excalidraw-app
+        exec yarn vite --host 0.0.0.0 --port 3000 --strictPort
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -m 5 http://localhost:3000/ | grep -q '<div id=\"root\"' || exit 1"]
+      interval: 15s
+      timeout: 6s
+      retries: 5
+      start_period: 600s
+    restart: on-failure
